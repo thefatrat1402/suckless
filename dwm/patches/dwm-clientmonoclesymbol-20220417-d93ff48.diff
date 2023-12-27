@@ -1,0 +1,41 @@
+From 630859138bb960e2aea41d47e68c48ec020daf5c Mon Sep 17 00:00:00 2001
+From: ben evolver <>
+Date: Sun, 17 Apr 2022 08:07:24 -0500
+Subject: [PATCH] add alternative symbols for nr. of active clients in monocle layout
+
+---
+ config.def.h | 4 ++++
+ dwm.c        | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..f49dfdf 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -44,6 +44,10 @@ static const Layout layouts[] = {
+ 	{ "[M]",      monocle },
+ };
+ 
++/* custom symbols for nr. of clients in monocle layout */
++/* when clients >= LENGTH(monocles), uses the last element */
++static const char *monocles[] = { "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[9+]" };
++
+ /* key definitions */
+ #define MODKEY Mod1Mask
+ #define TAGKEYS(KEY,TAG) \
+diff --git a/dwm.c b/dwm.c
+index 0fc328a..e47ba70 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1116,7 +1116,7 @@ monocle(Monitor *m)
+ 		if (ISVISIBLE(c))
+ 			n++;
+ 	if (n > 0) /* override layout symbol */
+-		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
++		snprintf(m->ltsymbol, sizeof m->ltsymbol, "%s", monocles[MIN(n, LENGTH(monocles)) - 1]);
+ 	for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
+ 		resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw, 0);
+ }
+-- 
+2.35.1
+
