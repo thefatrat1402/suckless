@@ -1,5 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 #include <X11/XF86keysym.h>
+#include "exitdwm.c"
 /* appearance */
 static const unsigned int borderpx  = 2;        /* border pixel of windows */
 static const unsigned int gappx     = 5;        /* gaps between windows */
@@ -29,10 +30,22 @@ static const char *const autostart[] = {
 	NULL /* terminate */
 };
 
+typedef struct {
+	const char *name;
+	const void *cmd;
+} Sp;
+const char *spcmd1[] = {"st", "-n", "spterm", "-g", "120x34", NULL };
+const char *spcmd2[] = {"st", "-n", "spmpd", "-g", "120x34", "-e", "ncmpcpp", NULL };
+static Sp scratchpads[] = {
+	/* name          cmd  */
+	{"spterm",      spcmd1},
+	{"spmpd",    spcmd2},
+};
+
 /* tagging */
 static const char *tags[] = { "α", "β", "γ", "δ", "ε", "ζ", "η", "θ", "ι" };
 static const char *tagsalt[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
-static const char *defaulttagapps[] = { "st", "qutebrowser", NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+static const char *defaulttagapps[] = { "st", "qutebrowser", NULL, "pcmanfm", NULL, NULL, NULL, NULL, NULL };
 static const int momentaryalttags = 0; /* 1 means alttags will show only when key is held down*/
 
 static const Rule rules[] = {
@@ -40,9 +53,11 @@ static const Rule rules[] = {
 	 *	WM_CLASS(STRING) = instance, class
 	 *	WM_NAME(STRING) = title
 	 */
-	/* class      instance    title       tags mask     isfloating   monitor */
-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
+	/* class      instance      title       tags mask     isfloating   monitor */
+	{ "Gimp",	    NULL,		    	NULL,	      0,			    	1,			     -1 },
+	{ "Firefox",  NULL,		    	NULL,	      1 << 8,			  0,			     -1 },
+	{ NULL,		    "spterm",	  	NULL,	    	SPTAG(0),	  	1,			     -1 },
+	{ NULL,		    "spmpd",	  	NULL,		    SPTAG(1),	  	1,			     -1 },
 };
 
 /* layout(s) */
@@ -76,13 +91,12 @@ static const char *monocles[] = { "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
-static const char *emacs[]   = { "emacsclient", "-c", NULL };
 static const char *network[]   = { "networkmanager_dmenu", "-c", "-l", "20", NULL };
+
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray1, NULL };
 static const char *termcmd[]  = { "st", NULL };
-#include "exitdwm.c"
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
@@ -102,7 +116,8 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_c,      killclient,     {0} },
 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
-	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
+	{ MODKEY|ControlMask,           XK_m,      setlayout,      {.v = &layouts[2]} },
+	{ MODKEY|ControlMask,           XK_f,      fullscreen,     {0} },
 	{ MODKEY,                       XK_space,  setlayout,      {0} },
 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
@@ -118,6 +133,8 @@ static const Key keys[] = {
 	{ MODKEY|ControlMask,           XK_s,      show,           {0} },
 	{ MODKEY|ShiftMask,             XK_v,      showall,        {0} },
 	{ MODKEY,                       XK_v,      hide,           {0} },
+	{ MODKEY,            			      XK_grave,  togglescratch,  {.ui = 0 } },
+	{ MODKEY,            		      	XK_m,	     togglescratch,  {.ui = 1 } },
 	TAGKEYS(                        XK_1,                      0)
 	TAGKEYS(                        XK_2,                      1)
 	TAGKEYS(                        XK_3,                      2)
@@ -136,7 +153,6 @@ static const Key keys[] = {
   { 0,                           XK_Print,   spawn,          SHCMD("/home/gabru/.local/bin/screenshot") },
   { ShiftMask,                   XK_Print,   spawn,          SHCMD("/home/gabru/.local/bin/screenshotsel") },
   { MODKEY,                          XK_x,   spawn,          SHCMD("slock")},
-  { MODKEY,                          XK_e,   spawn,          {.v = emacs } },
   { MODKEY,                          XK_n,   spawn,          {.v = network } },
 };
 
@@ -151,7 +167,7 @@ static const Button buttons[] = {
 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
-	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
+	{ ClkClientWin,         MODKEY,         Button1,        resizemouse,    {0} },
 	{ ClkTagBar,            0,              Button1,        view,           {0} },
 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
